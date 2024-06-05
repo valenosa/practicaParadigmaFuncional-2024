@@ -114,41 +114,10 @@ tiroVsObstaculo tiro obstaculo
   |tiroSuperaElObstaculo tiro obstaculo = aplicarModificadores tiro obstaculo
   |otherwise = UnTiro{velocidad= 0, precision= 0, altura= 0}
 
-
+-- En mi implementación original no usé floor porque me parece más lógico que sean numeros decimales, sin embargo los obstaculos dados están pensados para ser utilizados con una implementación que redondee para abajo, por lo que se agrega floor.
 aplicarModificadores :: Tiro -> Obstaculo -> Tiro
-aplicarModificadores (UnTiro velocidad precision altura) obstaculo = UnTiro {velocidad= (mVelocidad.modificadores) obstaculo velocidad, precision= (mPrecision.modificadores) obstaculo precision, altura= (mAltura .modificadores) obstaculo altura}
+aplicarModificadores (UnTiro velocidad precision altura) obstaculo = UnTiro {velocidad= (floor . (mVelocidad.modificadores) obstaculo) velocidad, precision= (floor . (mPrecision.modificadores) obstaculo) precision, altura= (floor . (mAltura .modificadores) obstaculo) altura}
 
--- noImporta :: Condicion
--- noImporta _ = True
-
--- tiroSuperaElObstaculo :: Tiro -> Obstaculo -> Bool
--- tiroSuperaElObstaculo tiro obstaculo = condicionVelocidad obstaculo (velocidad tiro) && condicionPrecision obstaculo (precision tiro) && condicionAltura obstaculo (altura tiro)
-
--- tiroVsObstaculo :: Tiro -> Obstaculo -> Tiro
--- tiroVsObstaculo tiro obstaculo
---     |tiroSuperaElObstaculo tiro obstaculo = 
-
-
-
-{- type Obstaculo = Tiro -> Tiro
-
-tunelConRampita :: Obstaculo
-tunelConRampita (UnTiro velocidad precision altura)
-    |precision > 90 && altura == 0 = UnTiro{velocidad= 2 * velocidad, precision= 100, altura= 0}
-    |otherwise = UnTiro{velocidad= 0, precision= 0, altura= 0}
-
-laguna :: Number -> Obstaculo
-laguna largo (UnTiro velocidad precision altura)
-    |velocidad > 80 && between 1 5 altura = UnTiro{velocidad= velocidad, precision= precision, altura= altura / largo}
-    |otherwise = UnTiro{velocidad= 0, precision= 0, altura= 0}
-
-
---Está mal la consigna? Dice que al no superar cualquier obstáculo, queda todo en cero, y al superar el hoyo, tambien queda todo en cero
-hoyo :: Obstaculo
-hoyo _ = UnTiro 0 0 0
-{- hoyo (UnTiro velocidad precision altura)
-    |between 5 20 velocidad && precision > 95 && altura == 0 = UnTiro{velocidad= 1, precision= 1, altura= 1}
-    |otherwise = UnTiro{velocidad= 0, precision= 0, altura= 0} -} -}
 
 --4)
 --a)
@@ -167,8 +136,24 @@ jugadorSuperaElObstaculo jugador obstaculo palo = tiroSuperaElObstaculo (golpe j
 -- Termina el parcial
 
 --b)
-cuantosObstaculos :: Tiro -> [Obstaculo]-> Number
-cuantosObstaculos tiro = length.takeWhile (tiroSuperaElObstaculo tiro)
+-- Versión sin takeWhile (no funciona y ahora mismo no la puedo debuggear, pero la idea está)
+-- cuantosObstaculos' :: Tiro -> [Obstaculo] -> Number
+-- cuantosObstaculos' tiro = length.fst.foldl obstaculoATupla ([], tiro)
+
+-- obstaculoATupla' :: ([Obstaculo], Tiro) -> Obstaculo -> ([Obstaculo], Tiro)
+-- obstaculoATupla' (obstaculosPasados, tiro) obstaculo 
+--     |tiroSuperaElObstaculo tiro obstaculo = (obstaculosPasados ++ [obstaculo], tiroVsObstaculo tiro obstaculo)
+--     |otherwise = (obstaculosPasados, tiroVsObstaculo tiro obstaculo)
+
+cuantosObstaculos :: Tiro -> [Obstaculo] -> Number
+cuantosObstaculos tiro = length.takeWhile id.obstaculosFueronPasados tiro
+
+obstaculosFueronPasados :: Tiro -> [Obstaculo] -> [Bool]
+obstaculosFueronPasados tiro = fst.foldl obstaculoATupla ([], tiro)
+
+obstaculoATupla :: ([Bool], Tiro) -> Obstaculo -> ([Bool], Tiro)
+obstaculoATupla (fueronPasados, tiro) obstaculo = (fueronPasados ++ [tiroSuperaElObstaculo tiro obstaculo], tiroVsObstaculo tiro obstaculo)
+
 
 --c)
 paloMasUtil :: Jugador -> [Obstaculo] -> String
@@ -177,7 +162,6 @@ paloMasUtil jugador = nombrePalo.paloMasUtilFuncion jugador
 paloMasUtilFuncion :: Jugador -> [Obstaculo] -> Palo
 paloMasUtilFuncion jugador obstaculos = maximoSegun (flip cuantosObstaculos obstaculos.golpe jugador) palos
 
--- cuantosObstaculos (golpe jugador) obstaculos
 
 --5) 
 -- No se tienen en cuenta empates
